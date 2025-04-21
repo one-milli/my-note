@@ -1,18 +1,38 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import { PartialBlock } from "@blocknote/core";
 import NoteViewer from "@/app/components/NoteViewer";
-import { notFound } from "next/navigation";
 
-type Props = {
-  params: { id: string };
-};
+interface Note {
+  content: PartialBlock[];
+}
 
-export default async function NotePage({ params }: Props) {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/notes/${params.id}`, {
-    cache: "no-store",
-  });
+export default function NotePage() {
+  const params = useParams();
+  const noteId = params.id as string;
 
-  if (!res.ok) return notFound();
+  const [note, setNote] = useState<Note | null>(null);
 
-  const { note } = await res.json();
+  useEffect(() => {
+    const fetchNote = async () => {
+      const res = await fetch(`/api/notes/${noteId}`);
+      if (res.ok) {
+        const { note } = await res.json();
+        setNote(note);
+      } else {
+        alert("ノートが見つかりませんでした");
+      }
+    };
+    fetchNote();
+  }, [noteId]);
 
-  return <NoteViewer title={note.title} content={note.content} />;
+  if (!note) return <div>読み込み中...</div>;
+
+  return (
+    <div className="p-4 w-full">
+      <NoteViewer content={note.content} />
+    </div>
+  );
 }

@@ -6,7 +6,8 @@ type Props = {
 };
 
 export async function GET(req: Request, { params }: Props) {
-  const { data, error } = await supabase.from("notes").select("*").eq("id", params.id).single();
+  const { id } = await params;
+  const { data, error } = await supabase.from("notes").select("*").eq("id", id).single();
 
   if (error || !data) {
     return NextResponse.json({ error: error?.message || "Not found" }, { status: 404 });

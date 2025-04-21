@@ -3,31 +3,38 @@
 import React, { useCallback } from "react";
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
-import { BlockNoteEditor } from "@blocknote/core";
+import { BlockNoteEditor, PartialBlock } from "@blocknote/core";
 import { BlockNoteView } from "@blocknote/mantine";
 import { useParams } from "next/navigation";
 
 type Props = {
-  title: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  content: any[] | any;
+  content: PartialBlock[];
 };
 
-export default function NoteViewer({ title, content }: Props) {
+export default function NoteViewer({ content }: Props) {
   const params = useParams();
   const noteId = params.id as string;
   const editor = BlockNoteEditor.create({ initialContent: content });
 
   const handleSave = useCallback(async () => {
     const content = editor.document;
-    const newTitle = prompt("ノートのタイトルを入力してください", title) || title;
+    const firstBlock = content[0];
+
+    let newTitle = "無題のノート";
+
+    if (Array.isArray(firstBlock?.content)) {
+      const firstContent = firstBlock.content[0];
+      if (firstContent && typeof firstContent === "object" && "text" in firstContent) {
+        newTitle = firstContent.text.trim() || "無題のノート";
+      }
+    }
 
     const res = await fetch(`/api/notes/${noteId}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ title: newTitle, content }),
+      body: JSON.stringify({ title: newTitle, content: content }),
     });
 
     if (!res.ok) {
@@ -36,14 +43,15 @@ export default function NoteViewer({ title, content }: Props) {
       alert("更新に失敗しました");
       return;
     }
+    if (res.ok) {
+    }
 
     const result = await res.json();
     console.log("更新成功:", result);
-  }, [editor]);
+  }, [editor, noteId]);
 
   return (
-    <div className="p-4 w-full max-w-3xl">
-      <h1 className="text-2xl font-bold mb-4">{title}</h1>
+    <>
       <div className="mb-4 flex justify-end">
         <button
           onClick={handleSave}
@@ -52,7 +60,9 @@ export default function NoteViewer({ title, content }: Props) {
           更新
         </button>
       </div>
-      <BlockNoteView editor={editor} />
-    </div>
+      <div className="bg-[#1f1f1f] rounded-xl py-4">
+        <BlockNoteView editor={editor} />
+      </div>
+    </>
   );
 }
